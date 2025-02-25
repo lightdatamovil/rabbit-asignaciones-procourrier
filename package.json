@@ -1,0 +1,25 @@
+{
+  "name": "api-asignaciones-procourrier",
+  "version": "1.0.0",
+  "description": "api asignaciones procourrier",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node -r dotenv/config server.js dotenv_config_path=.env.dev",
+    "prod": "node -r dotenv/config server.js dotenv_config_path=.env.prod"
+  },
+  "type": "module",
+  "author": "lightdatamovil",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql": "^2.18.1",
+    "redis": "^4.6.13"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^5.0.0",
+    "@types/mysql": "^2.15.26"
+  }
+}
