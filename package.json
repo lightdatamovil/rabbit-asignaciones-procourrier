@@ -1,7 +1,7 @@
 {
-  "name": "api-asignaciones-procourrier",
+  "name": "rabbit-asignaciones-procourrier",
   "version": "1.0.0",
-  "description": "api asignaciones procourrier",
+  "description": "rabbit asignaciones procourrier",
   "main": "server.js",
   "scripts": {
     "dev": "node -r dotenv/config server.js dotenv_config_path=.env.dev",
@@ -15,6 +15,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mysql": "^2.18.1",
+    "amqplib": "^0.10.5",
     "redis": "^4.6.13"
   },
   "devDependencies": {
