@@ -30,8 +30,8 @@ async function connectRabbitMQ() {
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (msg !== null) {
+                const body = JSON.parse(msg.content.toString());
                 try {
-                    const body = JSON.parse(msg.content.toString());
                     console.log("[x] Mensaje recibido:", body);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
@@ -65,6 +65,14 @@ async function connectRabbitMQ() {
 
                 } catch (error) {
                     console.error("[x] Error al procesar el mensaje:", error);
+                    let a = channel.sendToQueue(
+                        body.channel,
+                        Buffer.from(JSON.stringify({ feature: body.feature, success: false, message: error.message })),
+                        { persistent: true }
+                    );
+                    if (a) {
+                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                    }
                 } finally {
                     channel.ack(msg);
                 }
@@ -72,8 +80,8 @@ async function connectRabbitMQ() {
         });
         channel.consume(QUEUE_NAME_DESASIGNACION, async (msg) => {
             if (msg !== null) {
+                const body = JSON.parse(msg.content.toString());
                 try {
-                    const body = JSON.parse(msg.content.toString());
                     console.log("[x] Mensaje recibido:", body);
 
                     const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
@@ -107,6 +115,14 @@ async function connectRabbitMQ() {
 
                 } catch (error) {
                     console.error("[x] Error al procesar el mensaje:", error);
+                    let a = channel.sendToQueue(
+                        body.channel,
+                        Buffer.from(JSON.stringify({ feature: body.feature, success: false, message: error.message })),
+                        { persistent: true }
+                    );
+                    if (a) {
+                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, success: false, message: error.message });
+                    }
                 } finally {
                     channel.ack(msg);
                 }

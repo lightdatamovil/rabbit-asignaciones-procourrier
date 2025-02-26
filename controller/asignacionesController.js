@@ -132,8 +132,8 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
 
         const estado = estadoRows[0].estado;
 
-        await crearTablaAsignaciones(company.did, dbConnection);
-        await crearUsuario(company.did, dbConnection);
+        await crearTablaAsignaciones(company.did);
+        await crearUsuario(company.did);
 
         const insertSql = `INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)`;
 
