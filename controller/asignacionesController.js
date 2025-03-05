@@ -133,6 +133,7 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
         const estado = estadoRows[0].estado;
 
         await crearTablaAsignaciones(company.did);
+
         await crearUsuario(company.did);
 
         const insertSql = `INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)`;
@@ -154,6 +155,8 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
         }
 
         await insertAsignacionesDB(company.did, did, driverId, estado, userId, deviceFrom);
+
+        await updateRedis(company.did, shipmentId, driverId);
 
         return { success: true, mensaje: "Asignación realizada correctamente" };
     } catch (error) {
@@ -207,6 +210,8 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         // Desasignar chofer
         await executeQuery(dbConnection, `UPDATE envios SET choferAsignado = 0 WHERE superado=0 AND elim=0 AND did = ?`, [shipmentId]);
+
+        await updateRedis(company.did, shipmentId, 0);
 
         return { success: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {
