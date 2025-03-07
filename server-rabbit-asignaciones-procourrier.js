@@ -13,20 +13,15 @@ const QUEUE_NAME_DESASIGNACION = process.env.QUEUE_NAME_DESASIGNACION;
 async function connectRabbitMQ() {
     try {
         await redisClient.connect();
-        const startConnectionTime = performance.now();
         const connection = await connect(RABBITMQ_URL);
-        const endConnectionTime = performance.now();
-        const connectionDuration = endConnectionTime - startConnectionTime;
 
         const channel = await connection.createChannel();
         await channel.assertQueue(QUEUE_NAME_ASIGNACION, { durable: true });
         await channel.assertQueue(QUEUE_NAME_DESASIGNACION, { durable: true });
 
         console.log(`[*] Esperando mensajes en la cola "${QUEUE_NAME_ASIGNACION}"`);
-        console.log(`Tiempo de conexión a RabbitMQ: ${connectionDuration.toFixed(2)} ms`);
 
         console.log(`[*] Esperando mensajes en la cola "${QUEUE_NAME_DESASIGNACION}"`);
-        console.log(`Tiempo de conexión a RabbitMQ: ${connectionDuration.toFixed(2)} ms`);
 
         channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
             if (msg !== null) {

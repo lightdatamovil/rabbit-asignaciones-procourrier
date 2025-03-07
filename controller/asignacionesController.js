@@ -110,6 +110,8 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
     } catch (error) {
         console.error("Error al verificar la asignación:", error);
         throw error;
+    } finally {
+        dbConnection.end();
     }
 }
 
