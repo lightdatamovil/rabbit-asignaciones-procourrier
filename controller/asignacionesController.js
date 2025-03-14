@@ -35,7 +35,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
         const envios = await executeQuery(dbConnection, sql, []);
 
         if (envios.length === 0) {
-            return { estadoRespuesta: false, message: "No se encontró el paquete." };
+            return { estadoRespuesta: false, mensaje: "No se encontró el paquete." };
         }
         logCyan("Obtengo el envío");
 
@@ -61,28 +61,28 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
             logCyan("Es el mismo cadete");
             if (profile === 1 && estadoAsignacion === 1) {
                 logCyan("Es el mismo cadete, es perfil 1 y estadoAsignacion 1");
-                return { estadoRespuesta: false, message: "Este paquete ya fue asignado a este cadete" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue asignado a este cadete" };
             }
             if (profile === 3 && estadoAsignacion === 2) {
                 logCyan("Es el mismo cadete, es perfil 3 y estadoAsignacion 2");
-                return { estadoRespuesta: false, message: "Este paquete ya fue auto asignado a este cadete" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado a este cadete" };
             }
             if (profile === 5 && [3, 4, 5].includes(estadoAsignacion)) {
                 logCyan("Es el mismo cadete, es perfil 5 y estadoAsignacion 3, 4 o 5");
-                return { estadoRespuesta: false, message: "Este paquete ya fue confirmado" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue confirmado" };
             }
         } else {
             if (profile === 1 && estadoAsignacion === 1) {
                 logCyan("Es perfil 1 y estadoAsignacion 1");
-                return { estadoRespuesta: false, message: "Este paquete ya fue asignado a otro cadete" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue asignado a otro cadete" };
             }
             if (profile === 3 && estadoAsignacion === 2) {
                 logCyan("Es perfil 3 y estadoAsignacion 2");
-                return { estadoRespuesta: false, message: "Este paquete ya fue auto asignado por otro cadete" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado por otro cadete" };
             }
             if (profile === 5 && [1, 3, 4, 5].includes(estadoAsignacion)) {
                 logCyan("Es perfil 5 y estadoAsignacion 1, 3, 4 o 5");
-                return { estadoRespuesta: false, message: "Este paquete ya fue confirmado o asignado a otro cadete" };
+                return { estadoRespuesta: false, mensaje: "Este paquete ya fue confirmado o asignado a otro cadete" };
             }
         }
 
@@ -121,7 +121,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
         }
 
         if (noCumple) {
-            return { estadoRespuesta: false, message };
+            return { estadoRespuesta: false, mensaje };
         } else {
             await asignar(dbConnection, company, userId, driverId, deviceFrom, shipmentId);
             logCyan("Asignado correctamente");
@@ -129,7 +129,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
             await updateRedis(company.did, shipmentId, driverId);
             logCyan("Actualizo Redis con la asignación");
 
-            return { estadoRespuesta: true, message };
+            return { estadoRespuesta: true, mensaje };
         }
     } catch (error) {
         console.error("Error al verificar la asignación:", error);
@@ -145,7 +145,7 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
         const asignadoRows = await executeQuery(dbConnection, sqlAsignado, [shipmentId, driverId]);
 
         if (asignadoRows.length > 0) {
-            return { success: false, message: "El paquete ya se encuentra asignado a este chofer." };
+            return { estadoRespuesta: false, mensaje: "El paquete ya se encuentra asignado a este chofer." };
         }
         logCyan("El paquete todavia no está asignado");
 
@@ -186,7 +186,7 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
         await insertAsignacionesDB(company.did, did, driverId, estado, userId, deviceFrom);
         logCyan("Inserto en la base de datos individual de asignaciones");
 
-        return { success: true, message: "Asignación realizada correctamente" };
+        return { estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
     } catch (error) {
         console.error("Error al asignar paquete:", error);
         throw error;
@@ -219,7 +219,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         const operador = result.length > 0 ? result[0].operador : 0;
 
         if (operador == 0) {
-            return { success: false, message: "El paquete ya está desasignado" };
+            return { estadoRespuesta: false, mensaje: "El paquete ya está desasignado" };
         }
         logCyan("El paquete está asignado");
 
@@ -252,7 +252,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         await insertAsignacionesDB(company.did, did, driverId, estado[0].estado, userId, deviceFrom);
         logCyan("Inserto en la base de datos individual de asignaciones");
 
-        return { success: true, message: "Desasignación realizada correctamente" };
+        return { estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {
         console.error("Error al desasignar paquete:", error);
         throw error;
