@@ -62,11 +62,11 @@ async function connectRabbitMQ() {
                     console.error("[x] Error al procesar el mensaje:", error);
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message })),
+                        Buffer.from(JSON.stringify({ feature: body.feature, estadoRespuesta: false, mensaje: error.message ,error:true})),
                         { persistent: true }
                     );
                     if (a) {
-                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, estadoRespuesta: false, mensaje: error.message });
+                        console.log("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, estadoRespuesta: false, mensaje: error.message ,error:true});
                     }
                 } finally {
                     channel.ack(msg);
