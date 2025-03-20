@@ -1,11 +1,15 @@
-import { executeQuery, getProdDbConfig, updateRedis } from '../../db.js';
-import { idFromFlexShipment, idFromLightdataShipment } from '../src/functions/identifyShipment.js';
-import { createAssignmentsTable, createUser, insertAsignacionesDB } from '../../src/functions/db_local.js';
-import mysql from 'mysql';
+import { executeQuery, getProdDbConfig, updateRedis } from '../db.js';
+import { idFromFlexShipment } from './functions/idFromFlexShipment.js';
+import { idFromNoFlexShipment } from './functions/idFromNoFlexShipment.js';
+import mysql2 from 'mysql2';
+import { logCyan, logRed } from '../src/funciones/logsCustom.js';
+import { insertAsignacionesDB } from './functions/insertAsignacionesDB.js';
+import { createAssignmentsTable } from './functions/createAssignmentsTable.js';
+import { createUser } from './functions/createUser.js';
 
 export async function verificacionDeAsignacion(company, userId, profile, dataQr, driverId, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -13,7 +17,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
 
         const shipmentId = isFlex
             ? await idFromFlexShipment(dataQr.id, dbConnection)
-            : await idFromLightdataShipment(company, dataQr, dbConnection);
+            : await idFromNoFlexShipment(company, dataQr, dbConnection);
         if (isFlex) {
             logCyan("Es Flex");
         } else {
@@ -53,6 +57,10 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
             "SELECT estado, didCadete FROM envios_historial WHERE didEnvio = ? AND superado = 0 LIMIT 1",
             [shipmentId]
         );
+
+        if (userId == driverId && !resultHistorial[0].didCadete) {
+            return { estadoRespuesta: false, mensaje: "No tenes el paquete asignado." };
+        }
 
         let didCadete = resultHistorial.length > 0 ? resultHistorial[0].didCadete : null;
         let esElMismoCadete = didCadete === driverId;
@@ -121,7 +129,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
         }
 
         if (noCumple) {
-            return { estadoRespuesta: false, mensaje };
+            return { estadoRespuesta: false, mensaje: message };
         } else {
             await asignar(dbConnection, company, userId, driverId, deviceFrom, shipmentId);
             logCyan("Asignado correctamente");
@@ -129,13 +137,11 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
             await updateRedis(company.did, shipmentId, driverId);
             logCyan("Actualizo Redis con la asignación");
 
-            return { estadoRespuesta: true, mensaje };
+            return { estadoRespuesta: true, mensaje: message };
         }
     } catch (error) {
-        console.error("Error al verificar la asignación:", error);
+        logRed(`Error al verificar la asignación: ${error.stack}`);
         throw error;
-    } finally {
-        dbConnection.end();
     }
 }
 
@@ -188,7 +194,7 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
 
         return { estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
     } catch (error) {
-        console.error("Error al asignar paquete:", error);
+        logRed(`Error al asignar paquete: ${error.stack}`);
         throw error;
     } finally {
         dbConnection.end();
@@ -197,7 +203,7 @@ async function asignar(dbConnection, company, userId, driverId, deviceFrom, ship
 
 export async function desasignar(company, userId, dataQr, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
-    const dbConnection = mysql.createConnection(dbConfig);
+    const dbConnection = mysql2.createConnection(dbConfig);
     dbConnection.connect();
 
     try {
@@ -205,7 +211,7 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
 
         const shipmentId = isFlex
             ? await idFromFlexShipment(dataQr.id, dbConnection)
-            : await idFromLightdataShipment(company, dataQr, dbConnection);
+            : await idFromNoFlexShipment(company, dataQr, dbConnection);
         if (isFlex) {
             logCyan("Es Flex");
         } else {
@@ -249,12 +255,12 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         await updateRedis(company.did, shipmentId, 0);
         logCyan("Updateo redis con la desasignación");
 
-        await insertAsignacionesDB(company.did, did, driverId, estado[0].estado, userId, deviceFrom);
+        await insertAsignacionesDB(company.did, shipmentId, 0, estado[0].estado, userId, deviceFrom);
         logCyan("Inserto en la base de datos individual de asignaciones");
 
         return { estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
     } catch (error) {
-        console.error("Error al desasignar paquete:", error);
+        logRed(`Error al desasignar paquete: ${error.stack}`);
         throw error;
     } finally {
         dbConnection.end();

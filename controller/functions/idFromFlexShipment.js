@@ -14,7 +14,7 @@ export async function idFromFlexShipment(shipmentId, dbConnection) {
             throw new Error("El paquete flex no se encontró en la base de datos.");
         }
     } catch (error) {
-        logRed(`Error en idFromFlexShipment:  ${error.stack}`)
+        logRed(`Error en idFromFlexShipment: ${error.stack}`)
         throw error;
     }
 }

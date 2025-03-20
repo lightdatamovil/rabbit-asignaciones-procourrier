@@ -1,5 +1,6 @@
 import redis from 'redis';
 import dotenv from 'dotenv';
+import { logRed, logYellow } from './src/funciones/logsCustom.js';
 
 dotenv.config();
 
@@ -22,11 +23,14 @@ export const redisClient = redis.createClient({
 });
 
 redisClient.on('error', (err) => {
-    console.error('Error al conectar con Redis:', err);
+    logRed(`Error al conectar con Redis: ${err.stack}`);
+
 });
 
 export async function updateRedis(empresaId, envioId, choferId) {
-    const DWRTE = await redisClient.get('DWRTE',);
+    let DWRTE = await redisClient.get('DWRTE');
+
+    DWRTE = DWRTE ? JSON.parse(DWRTE) : {};
     const empresaKey = `e.${empresaId}`;
     const envioKey = `en.${envioId}`;
 
@@ -35,15 +39,17 @@ export async function updateRedis(empresaId, envioId, choferId) {
         DWRTE[empresaKey] = {};
     }
 
-    // Solo agrega si el envío no existe
+    // Si el envío no existe, lo creamos
     if (!DWRTE[empresaKey][envioKey]) {
-        DWRTE[empresaKey][envioKey] = {
-            choferId: choferId
-        };
+        DWRTE[empresaKey][envioKey] = {};
     }
+
+    // Actualizamos el choferId siempre
+    DWRTE[empresaKey][envioKey].choferId = choferId;
 
     await redisClient.set('DWRTE', JSON.stringify(DWRTE));
 }
+
 
 let companiesList = [];
 
@@ -73,7 +79,7 @@ async function loadCompaniesFromRedis() {
         companiesList = JSON.parse(companiesListString);
 
     } catch (error) {
-        console.error("Error en loadCompaniesFromRedis:", error);
+        logRed(`Error en loadCompaniesFromRedis: ${error.stack}`);
         throw error;
     }
 }
@@ -88,33 +94,40 @@ export async function getCompanyById(companyId) {
 
                 company = companiesList[companyId];
             } catch (error) {
-                console.error("Error al cargar compañías desde Redis:", error);
+                logRed(`Error al cargar compañías desde Redis: ${error.stack}`);
                 throw error;
             }
         }
 
         return company;
     } catch (error) {
-        console.error("Error en getCompanyById:", error);
+        logRed(`Error en getCompanyById: ${error.stack}`);
         throw error;
     }
 }
 
-export async function executeQuery(dbConnection, query, values) {
-    // console.log("Query:", query);
-    // console.log("Values:", values);
+export async function executeQuery(connection, query, values, log = false) {
+    if (log) {
+        logYellow(`Ejecutando query: ${query} con valores: ${values}`);
+    }
     try {
         return new Promise((resolve, reject) => {
-            dbConnection.query(query, values, (err, results) => {
+            connection.query(query, values, (err, results) => {
                 if (err) {
+                    if (log) {
+                        logRed(`Error en executeQuery: ${err.message}`);
+                    }
                     reject(err);
                 } else {
+                    if (log) {
+                        logYellow(`Query ejecutado con éxito: ${JSON.stringify(results)}`);
+                    }
                     resolve(results);
                 }
             });
         });
     } catch (error) {
-        console.error("Error al ejecutar la query:", error);
+        logRed(`Error en executeQuery: ${error.stack}`);
         throw error;
     }
 }

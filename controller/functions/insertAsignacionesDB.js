@@ -28,7 +28,5 @@ export async function insertAsignacionesDB(companyId, shipmentId, driverId, ship
         logRed(`Error al insertar asignaciones en la base de datos:  ${error.stack}`)
 
         throw error;
-    } finally {
-        dbConnection.end();
     }
 }
