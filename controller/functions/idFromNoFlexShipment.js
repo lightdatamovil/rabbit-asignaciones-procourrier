@@ -1,3 +1,6 @@
+import { executeQuery } from "../../db.js";
+import { logRed } from "../../src/funciones/logsCustom.js";
+
 export async function idFromNoFlexShipment(company, dataQr, dbConnection) {
     const companyIdFromShipment = dataQr.empresa;
 
@@ -14,8 +17,7 @@ export async function idFromNoFlexShipment(company, dataQr, dbConnection) {
                 throw new Error("El paquete externo no existe en la logística.");
             }
         } catch (error) {
-
-            logRed(`Error al obtener el id del envío:  ${error.message}`)
+            logRed(`Error al obtener el id del envío:  ${error.stack}`)
             throw error;
         }
     } else {

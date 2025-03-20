@@ -1,3 +1,7 @@
+import { executeQuery } from "../../db.js";
+import { logRed } from "../../src/funciones/logsCustom.js";
+
+
 export async function idFromFlexShipment(shipmentId, dbConnection) {
     try {
         const query = `SELECT did FROM envios WHERE flex=1 AND superado=0 AND elim=0 AND ml_shipment_id = ? LIMIT 1`;
@@ -10,6 +14,7 @@ export async function idFromFlexShipment(shipmentId, dbConnection) {
             throw new Error("El paquete flex no se encontró en la base de datos.");
         }
     } catch (error) {
+        logRed(`Error en idFromFlexShipment:  ${error.stack}`)
         throw error;
     }
 }

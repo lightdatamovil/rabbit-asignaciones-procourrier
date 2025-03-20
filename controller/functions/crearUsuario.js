@@ -1,3 +1,9 @@
+
+import { getDbConfig, executeQuery } from "../../db.js";
+import mysql2 from 'mysql2';
+
+import { logRed } from "../../src/funciones/logsCustom.js";
+
 export async function crearUsuario(companyId) {
     const dbConfig = getDbConfig();
     const dbConnection = mysql2.createConnection(dbConfig);
@@ -15,7 +21,7 @@ export async function crearUsuario(companyId) {
 
         return;
     } catch (error) {
-        logRed(`Error al crear el usuario:  ${error.message}`)
+        logRed(`Error al crear el usuario:  ${error.stack}`)
 
         throw error;
     } finally {
