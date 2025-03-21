@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { desasignar, verificacionDeAsignacion } from './controller/asignacionesController.js';
 import { verifyParamaters } from './src/funciones/verifyParameters.js';
 import { getCompanyById, redisClient } from './db.js';
-import { logBlue, logGreen, logPurple, logRed } from './src/funciones/logsCustom.js';
+import { logBlue, logGreen, logPurple, logRed, logYellow } from './src/funciones/logsCustom.js';
 
 dotenv.config({ path: process.env.ENV_FILE || '.env' });
 
@@ -42,7 +42,6 @@ async function connectRabbitMQ() {
 
                     const resultado = await verificacionDeAsignacion(company, body.userId, body.profile, body.dataQr, body.driverId, body.deviceFrom);
 
-                    const startSendTime = performance.now();
                     resultado.feature = 'asignacion';
                     channel.sendToQueue(
                         body.channel,
@@ -95,6 +94,7 @@ async function connectRabbitMQ() {
                         Buffer.from(JSON.stringify(resultado)),
                         { persistent: true }
                     );
+                    logGreen(`Respuesta enviada al canal ${body.channel}: ${JSON.stringify(resultado)}`);
 
                 } catch (error) {
                     logRed(`Error al procesar el mensaje: ${error.stack}`);

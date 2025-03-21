@@ -133,13 +133,14 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
         if (noCumple) {
             return { estadoRespuesta: false, mensaje: message };
         } else {
-            await asignar(dbConnection, company, userId, driverId, deviceFrom, shipmentId);
-            logCyan("Asignado correctamente");
-
             await updateRedis(company.did, shipmentId, driverId);
             logCyan("Actualizo Redis con la asignación");
+            const result = await asignar(dbConnection, company, userId, driverId, deviceFrom, shipmentId);
+            logCyan("Asignado correctamente");
 
-            return { estadoRespuesta: true, mensaje: message };
+
+
+            return result;
         }
     } catch (error) {
         logRed(`Error al verificar la asignación: ${error.stack}`);
@@ -227,23 +228,23 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
             throw new Error("No se pudo obtener el id del envío.");
         }
 
-        const setEstadoAsignacion = "UPDATE envios SET estadoAsignacion = 0 WHERE superado=0 AND elim=0 AND did = ?";
+        const setEstadoAsignacion = "UPDATE envios SET estadoAsignacion = 0 WHERE superado = 0 AND elim=0 AND did = ?";
         await executeQuery(dbConnection, setEstadoAsignacion, [shipmentId]);
 
-        const sq = "SELECT estado FROM `envios_historial` WHERE  didEnvio = ? and superado=0 LIMIT 1";
+        const sq = "SELECT estado FROM `envios_historial` WHERE  didEnvio = ? and superado = 0 LIMIT 1";
         const estado = await executeQuery(dbConnection, sq, [shipmentId]);
 
         const insertQuery = "INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)";
         const resultInsertQuery = await executeQuery(dbConnection, insertQuery, ["", 0, shipmentId, estado[0].estado, userId, deviceFrom]);
         logCyan("Inserto en la tabla de asignaciones con el operador 0");
         // Actualizar asignaciones
-        await executeQuery(dbConnection, `UPDATE envios_asignaciones SET superado=1, did=${resultInsertQuery.insertId} WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
+        await executeQuery(dbConnection, `UPDATE envios_asignaciones SET superado = 1 WHERE superado = 0 AND elim=0 AND didEnvio = ? AND did != ${resultInsertQuery.insertId}`, [shipmentId]);
 
         // Actualizar historial
-        await executeQuery(dbConnection, `UPDATE envios_historial SET didCadete=0 WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
+        await executeQuery(dbConnection, `UPDATE envios_historial SET didCadete=0 WHERE superado = 0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
 
         // Desasignar chofer
-        await executeQuery(dbConnection, `UPDATE envios SET choferAsignado = 0 WHERE superado=0 AND elim=0 AND did = ?`, [shipmentId]);
+        await executeQuery(dbConnection, `UPDATE envios SET choferAsignado = 0 WHERE superado = 0 AND elim=0 AND did = ?`, [shipmentId]);
         logCyan("Updateo las tablas");
 
         await updateRedis(company.did, shipmentId, 0);
