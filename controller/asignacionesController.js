@@ -2,7 +2,7 @@ import { executeQuery, getProdDbConfig, updateRedis } from '../db.js';
 import { idFromFlexShipment } from './functions/idFromFlexShipment.js';
 import { idFromNoFlexShipment } from './functions/idFromNoFlexShipment.js';
 import mysql2 from 'mysql2';
-import { logCyan, logRed } from '../src/funciones/logsCustom.js';
+import { logCyan, logRed, logYellow } from '../src/funciones/logsCustom.js';
 import { insertAsignacionesDB } from './functions/insertAsignacionesDB.js';
 import { createAssignmentsTable } from './functions/createAssignmentsTable.js';
 import { createUser } from './functions/createUser.js';
@@ -64,7 +64,9 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
 
         let didCadete = resultHistorial.length > 0 ? resultHistorial[0].didCadete : null;
         let esElMismoCadete = didCadete === driverId;
-
+        logYellow(`Es el mismo cadete: ${esElMismoCadete}`);
+        logYellow(`Perfil: ${profile}`);
+        logYellow(`Estado asignación: ${estadoAsignacion}`);
         if (esElMismoCadete) {
             logCyan("Es el mismo cadete");
             if (profile === 1 && estadoAsignacion === 1) {
@@ -84,7 +86,7 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
                 logCyan("Es perfil 1 y estadoAsignacion 1");
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue asignado a otro cadete" };
             }
-            if (profile === 3 && estadoAsignacion === 2) {
+            if (profile === 3 && [2, 3].includes(estadoAsignacion)) {
                 logCyan("Es perfil 3 y estadoAsignacion 2");
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado por otro cadete" };
             }
