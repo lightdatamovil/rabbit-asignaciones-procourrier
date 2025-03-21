@@ -149,14 +149,6 @@ export async function verificacionDeAsignacion(company, userId, profile, dataQr,
 
 async function asignar(dbConnection, company, userId, driverId, deviceFrom, shipmentId) {
     try {
-        const sqlAsignado = `SELECT id, estado FROM envios_asignaciones WHERE superado=0 AND elim=0 AND didEnvio = ? AND operador = ?`;
-        const asignadoRows = await executeQuery(dbConnection, sqlAsignado, [shipmentId, driverId]);
-
-        if (asignadoRows.length > 0) {
-            return { estadoRespuesta: false, mensaje: "El paquete ya se encuentra asignado a este chofer." };
-        }
-        logCyan("El paquete todavia no está asignado");
-
         const estadoQuery = `SELECT estado FROM envios_historial WHERE superado=0 AND elim=0 AND didEnvio = ?`;
         const estadoRows = await executeQuery(dbConnection, estadoQuery, [shipmentId]);
 
@@ -241,12 +233,11 @@ export async function desasignar(company, userId, dataQr, deviceFrom) {
         const sq = "SELECT estado FROM `envios_historial` WHERE  didEnvio = ? and superado=0 LIMIT 1";
         const estado = await executeQuery(dbConnection, sq, [shipmentId]);
 
-        // Actualizar asignaciones
-        await executeQuery(dbConnection, `UPDATE envios_asignaciones SET superado=1, did=${resultInsertQuery.insertId} WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
-
         const insertQuery = "INSERT INTO envios_asignaciones (did, operador, didEnvio, estado, quien, desde) VALUES (?, ?, ?, ?, ?, ?)";
         const resultInsertQuery = await executeQuery(dbConnection, insertQuery, ["", 0, shipmentId, estado[0].estado, userId, deviceFrom]);
         logCyan("Inserto en la tabla de asignaciones con el operador 0");
+        // Actualizar asignaciones
+        await executeQuery(dbConnection, `UPDATE envios_asignaciones SET superado=1, did=${resultInsertQuery.insertId} WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
 
         // Actualizar historial
         await executeQuery(dbConnection, `UPDATE envios_historial SET didCadete=0 WHERE superado=0 AND elim=0 AND didEnvio = ?`, [shipmentId]);
