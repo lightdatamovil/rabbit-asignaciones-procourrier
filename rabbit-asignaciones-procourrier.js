@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import { desasignar, verificacionDeAsignacion } from './controller/asignacionesController.js';
 import { verifyParamaters } from './src/funciones/verifyParameters.js';
 import { getCompanyById, redisClient } from './db.js';
-import { logBlue, logGreen, logPurple, logRed, logYellow } from './src/funciones/logsCustom.js';
 
 dotenv.config({ path: process.env.ENV_FILE || '.env' });
 
@@ -11,111 +10,128 @@ const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE_NAME_ASIGNACION = process.env.QUEUE_NAME_ASIGNACION;
 const QUEUE_NAME_DESASIGNACION = process.env.QUEUE_NAME_DESASIGNACION;
 
-async function connectRabbitMQ() {
-    try {
-        await redisClient.connect();
-        const connection = await connect(RABBITMQ_URL);
+async function startConsumer() {
+    await redisClient.connect();
+    let connection;
+    let channel;
 
-        const channel = await connection.createChannel();
-        await channel.assertQueue(QUEUE_NAME_ASIGNACION, { durable: true });
-        await channel.assertQueue(QUEUE_NAME_DESASIGNACION, { durable: true });
+    const connectWithRetry = async () => {
+        try {
+            connection = await connect(RABBITMQ_URL);
+            channel = await connection.createChannel();
 
-        logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_ASIGNACION}"`);
+            await channel.assertQueue(QUEUE_NAME_ASIGNACION, { durable: true });
+            await channel.assertQueue(QUEUE_NAME_DESASIGNACION, { durable: true });
 
-        logBlue(`[*] Esperando mensajes en la cola "${QUEUE_NAME_DESASIGNACION}"`);
+            console.log(`[*] Esperando mensajes en "${QUEUE_NAME_ASIGNACION}" y "${QUEUE_NAME_DESASIGNACION}"`);
 
-        channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
-            const startTime = performance.now();
-            if (msg !== null) {
+            connection.on('close', () => {
+                console.error('[!] Conexión cerrada. Reintentando...');
+                return reconnect();
+            });
+
+            connection.on('error', (err) => {
+                console.error('[!] Error en la conexión:', err.message);
+            });
+
+            channel.consume(QUEUE_NAME_ASIGNACION, async (msg) => {
+                if (!msg) return;
                 const body = JSON.parse(msg.content.toString());
+
                 try {
-                    logGreen(`Mensaje recibido: ${JSON.stringify(body)}`);
+                    console.log("[x] Mensaje recibido:", body);
 
-                    const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel'], true);
-
+                    const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
                     if (errorMessage) {
-                        logRed(`Error al verificar los parámetros: ${errorMessage}`);
-                        return { mensaje: errorMessage };
+                        console.log("[x] Error al verificar los parámetros:", errorMessage);
+                        return;
                     }
 
                     const company = await getCompanyById(body.companyId);
-
                     const resultado = await verificacionDeAsignacion(company, body.userId, body.profile, body.dataQr, body.driverId, body.deviceFrom);
 
-                    resultado.feature = 'asignacion';
+                    const nowHour = new Date().toLocaleTimeString();
+                    const startSendTime = performance.now();
+
+                    channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(resultado)), { persistent: true });
+
+                    const sendDuration = performance.now() - startSendTime;
+
+                    console.log(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:`, resultado);
+                    console.log(`Tiempo de envío: ${sendDuration.toFixed(2)} ms`);
+                } catch (error) {
+                    console.error("[x] Error al procesar el mensaje:", error);
                     channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify(resultado)),
+                        Buffer.from(JSON.stringify({
+                            feature: body.feature,
+                            estadoRespuesta: false,
+                            mensaje: error.message,
+                            error: true
+                        })),
                         { persistent: true }
                     );
-
-
-                    logGreen(`Respuesta enviada al canal ${body.channel}: ${JSON.stringify(resultado)}`);
-
-                } catch (error) {
-                    logRed(`Error al procesar el mensaje: ${error.stack}`);
-                    let a = channel.sendToQueue(
-                        body.channel,
-                        Buffer.from(JSON.stringify({ feature: 'asignacion', estadoRespuesta: false, mensaje: error.stack, error: true })),
-                        { persistent: true }
-                    );
-                    if (a) {
-                        logRed(`Mensaje enviado al canal ${body.channel}: { feature: ${body.feature}, estadoRespuesta: false, mensaje: ${error.stack}, error: true }`);
-                    }
                 } finally {
                     channel.ack(msg);
-                    const endTime = performance.now();
-                    logPurple(`Tiempo de ejecución: ${endTime - startTime} ms`);
                 }
-            }
-        });
-        channel.consume(QUEUE_NAME_DESASIGNACION, async (msg) => {
-            const startTime = performance.now();
-            if (msg !== null) {
+            });
+
+            channel.consume(QUEUE_NAME_DESASIGNACION, async (msg) => {
+                if (!msg) return;
                 const body = JSON.parse(msg.content.toString());
+
                 try {
-                    logGreen(`Mensaje recibido: ${JSON.stringify(body)}`);
+                    console.log("[x] Mensaje recibido:", body);
 
-                    const errorMessage = verifyParamaters(body, ['dataQr', 'deviceFrom', 'channel'], true);
-
+                    const errorMessage = verifyParamaters(body, ['dataQr', 'driverId', 'deviceFrom', 'channel']);
                     if (errorMessage) {
-                        logRed(`Error al verificar los parámetros: ${errorMessage}`);
-                        return { mensaje: errorMessage };
+                        console.log("[x] Error al verificar los parámetros:", errorMessage);
+                        return;
                     }
 
                     const company = await getCompanyById(body.companyId);
+                    const resultado = await desasignar(company, body.userId, body.dataQr, body.driverId, body.deviceFrom);
 
-                    const resultado = await desasignar(company, body.userId, body.dataQr, body.deviceFrom);
+                    const nowHour = new Date().toLocaleTimeString();
+                    const startSendTime = performance.now();
 
-                    resultado.feature = 'asignacion';
+                    channel.sendToQueue(body.channel, Buffer.from(JSON.stringify(resultado)), { persistent: true });
 
+                    const sendDuration = performance.now() - startSendTime;
+
+                    console.log(`[x] Respuesta enviada al canal ${body.channel} a las ${nowHour}:`, resultado);
+                    console.log(`Tiempo de envío: ${sendDuration.toFixed(2)} ms`);
+                } catch (error) {
+                    console.error("[x] Error al procesar el mensaje:", error);
                     channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify(resultado)),
+                        Buffer.from(JSON.stringify({
+                            feature: body.feature,
+                            estadoRespuesta: false,
+                            mensaje: error.message,
+                            error: true
+                        })),
                         { persistent: true }
                     );
-                    logGreen(`Respuesta enviada al canal ${body.channel}: ${JSON.stringify(resultado)}`);
-
-                } catch (error) {
-                    logRed(`Error al procesar el mensaje: ${error.stack}`);
-                    let a = channel.sendToQueue(
-                        body.channel,
-                        Buffer.from(JSON.stringify({ feature: 'asignacion', estadoRespuesta: false, mensaje: error.stack, error: true })),
-                        { persistent: true }
-                    );
-                    if (a) {
-                        logGreen("Mensaje enviado al canal", body.channel + ":", { feature: body.feature, estadoRespuesta: false, mensaje: error.stack });
-                    }
                 } finally {
-                    const endTime = performance.now();
-                    logPurple(`Tiempo de ejecución: ${endTime - startTime} ms`);
                     channel.ack(msg);
                 }
-            }
-        });
-    } catch (error) {
-        logRed(`Error al conectar con Redis: ${error.stack}`);
-    }
+            });
+
+        } catch (error) {
+            console.error('[!] Error conectando a RabbitMQ:', error.message);
+            await reconnect();
+        }
+    };
+
+    const reconnect = async () => {
+        setTimeout(() => {
+            console.log('[~] Intentando reconectar...');
+            connectWithRetry();
+        }, 5000); // 5 segundos de delay entre reintentos
+    };
+
+    await connectWithRetry();
 }
 
-connectRabbitMQ();
+startConsumer();
