@@ -50,10 +50,16 @@ export async function updateRedis(empresaId, envioId, choferId) {
     await redisClient.set('DWRTE', JSON.stringify(DWRTE));
 }
 
-
 let companiesList = [];
 
 export function getDbConfig() {
+    logYellow(JSON.stringify({
+        databaseHost,
+        databaseUser,
+        databasePassword,
+        databaseName,
+        databasePort
+    }));
     return {
         host: databaseHost,
         user: databaseUser,
@@ -106,28 +112,19 @@ export async function getCompanyById(companyId) {
     }
 }
 
-export async function executeQuery(connection, query, values, log = false) {
+export async function executeQuery(connection, query, values, log = true) {
     if (log) {
         logYellow(`Ejecutando query: ${query} con valores: ${values}`);
     }
     try {
-        return new Promise((resolve, reject) => {
-            connection.query(query, values, (err, results) => {
-                if (err) {
-                    if (log) {
-                        logRed(`Error en executeQuery: ${err.message}`);
-                    }
-                    reject(err);
-                } else {
-                    if (log) {
-                        logYellow(`Query ejecutado con éxito: ${JSON.stringify(results)}`);
-                    }
-                    resolve(results);
-                }
-            });
-        });
+        const [results] = await connection.query(query, values);
+        if (log) {
+            logYellow(`Query ejecutado con éxito: ${JSON.stringify(results)}`);
+        }
+        return results;
     } catch (error) {
-        logRed(`Error en executeQuery: ${error.stack}`);
+        logRed(`Error en executeQuery: ${error.message}`);
         throw error;
     }
 }
+

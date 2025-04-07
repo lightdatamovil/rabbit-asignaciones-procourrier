@@ -1,15 +1,8 @@
-import { executeQuery, getDbConfig } from "../../db.js";
-
-
-import mysql2 from "mysql2";
+import { executeQuery } from "../../db.js";
 import { logRed } from "../../src/funciones/logsCustom.js";
 
 
-export async function insertAsignacionesDB(companyId, shipmentId, driverId, shipmentState, userId, deviceFrom) {
-    const dbConfig = getDbConfig();
-    const dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
-
+export async function insertAsignacionesDB(dbConnection, companyId, shipmentId, driverId, shipmentState, userId, deviceFrom) {
     try {
         const checkSql = `SELECT id FROM asignaciones_${companyId} WHERE didenvio = ? AND superado = 0`;
         const existingRecords = await executeQuery(dbConnection, checkSql, [shipmentId]);

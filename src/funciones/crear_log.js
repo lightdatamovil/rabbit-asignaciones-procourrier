@@ -1,15 +1,16 @@
-import { logRed } from "./logsCustom";
+import { executeQuery } from "../../db.js";
+import { logGreen, logRed } from "./logsCustom.js";
 
-export async function crearLog(idEmpresa, operador, endpoint, result, quien, idDispositivo, modelo, marca, versionAndroid, versionApp, conLocal) {
+export async function crearLog(dbConnection, empresa, usuario, perfil, body, tiempo, resultado, tipo, metodo, exito) {
     try {
-        const fechaunix = Date.now();
-        const sqlLog = `INSERT INTO logs (didempresa, quien, cadete, data, fechaunix) VALUES (?, ?, ?, ?, ?)`;
+        const sqlLog = `INSERT INTO logs_v2 (empresa, usuario, perfil, body, tiempo, resultado, tipo, metodo, exito) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        const values = [idEmpresa, quien, operador, JSON.stringify(result), fechaunix];
+        const values = [empresa, usuario, perfil, JSON.stringify(body), tiempo, resultado, tipo, metodo, exito];
 
-        await conLocal.execute(sqlLog, values);
+        await executeQuery(dbConnection, sqlLog, values);
+        logGreen(`Log creado: ${JSON.stringify(values)}`);
     } catch (error) {
-        logRed(`Error al crear log: ${error.stack}`);
+        logRed(`Error en crearLog: ${error.stack}`)
         throw error;
     }
 }

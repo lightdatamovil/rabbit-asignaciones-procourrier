@@ -1,13 +1,8 @@
 
-import { getDbConfig, executeQuery } from "../../db.js";
-import mysql2 from 'mysql2';
-
+import { executeQuery } from "../../db.js";
 import { logRed } from "../../src/funciones/logsCustom.js";
 
-export async function createUser(companyId) {
-    const dbConfig = getDbConfig();
-    const dbConnection = mysql2.createConnection(dbConfig);
-    dbConnection.connect();
+export async function createUser(dbConnection, companyId) {
 
     try {
         const username = `usuario_${companyId}`;
