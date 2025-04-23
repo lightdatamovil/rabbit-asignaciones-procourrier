@@ -140,5 +140,7 @@ export async function verificacionDeAsignacion(startTime, company, userId, profi
     } catch (error) {
         logRed(`Error al verificar la asignación: ${error.stack}`);
         throw error;
+    } finally {
+        dbConnection.end();
     }
 }

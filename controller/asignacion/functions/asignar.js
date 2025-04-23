@@ -65,7 +65,6 @@ export async function asignar(startTime, dbConnection, company, userId, driverId
 
         throw error;
     } finally {
-        dbConnection.end();
         dbConnectionLocal.end();
     }
 }
