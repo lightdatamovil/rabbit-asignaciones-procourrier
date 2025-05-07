@@ -52,7 +52,7 @@ export async function asignar(startTime, dbConnection, company, userId, driverId
 
         const sendDuration = performance.now() - startTime;
         await updateRedis(company.did, shipmentId, driverId);
-        const resultado = { feature: "asignacion", estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
+        const resultado = { feature: "asignacion-procourrier", estadoRespuesta: true, mensaje: "Asignación realizada correctamente" };
 
         crearLog(dbConnectionLocal, company.did, body.userId, body.profile, body, sendDuration.toFixed(2), JSON.stringify(resultado), "asignar", "rabbit", true);
 

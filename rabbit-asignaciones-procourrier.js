@@ -43,7 +43,7 @@ async function connectRabbitMQ() {
 
                     const resultado = await verificacionDeAsignacion(startTime, company, body.userId, body.profile, body, body.driverId, body.deviceFrom);
 
-                    resultado.feature = 'asignacion';
+                    resultado.feature = 'asignacion-procourrier';
                     channel.sendToQueue(
                         body.channel,
                         Buffer.from(JSON.stringify(resultado)),
@@ -56,7 +56,7 @@ async function connectRabbitMQ() {
                     logRed(`Error al procesar el mensaje: ${error.stack}`);
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: 'asignacion', estadoRespuesta: false, mensaje: error.stack, error: true })),
+                        Buffer.from(JSON.stringify({ feature: 'asignacion-procourrier', estadoRespuesta: false, mensaje: error.stack, error: true })),
                         { persistent: true }
                     );
                     if (a) {
@@ -100,7 +100,7 @@ async function connectRabbitMQ() {
                     logRed(`Error al procesar el mensaje: ${error.stack}`);
                     let a = channel.sendToQueue(
                         body.channel,
-                        Buffer.from(JSON.stringify({ feature: 'asignacion', estadoRespuesta: false, mensaje: error.stack, error: true })),
+                        Buffer.from(JSON.stringify({ feature: 'asignacion-procourrier', estadoRespuesta: false, mensaje: error.stack, error: true })),
                         { persistent: true }
                     );
                     if (a) {
