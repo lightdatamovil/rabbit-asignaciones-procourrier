@@ -53,13 +53,6 @@ export async function updateRedis(empresaId, envioId, choferId) {
 let companiesList = [];
 
 export function getDbConfig() {
-    logYellow(JSON.stringify({
-        databaseHost,
-        databaseUser,
-        databasePassword,
-        databaseName,
-        databasePort
-    }));
     return {
         host: databaseHost,
         user: databaseUser,
@@ -112,7 +105,7 @@ export async function getCompanyById(companyId) {
     }
 }
 
-export async function executeQuery(connection, query, values, log = true) {
+export async function executeQuery(connection, query, values, log) {
     if (log) {
         logYellow(`Ejecutando query: ${query} con valores: ${values}`);
     }
