@@ -70,7 +70,8 @@ export async function desasignar(startTime, company, userId, body, deviceFrom) {
 
         const sendDuration = performance.now() - startTime;
 
-        const resultado = { feature: "asignacion-procourrier", estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
+        const QUEUE_NAME_ASIGNACION = process.env.QUEUE_NAME_ASIGNACION;
+        const resultado = { feature: QUEUE_NAME_ASIGNACION, estadoRespuesta: true, mensaje: "Desasignación realizada correctamente" };
 
         crearLog(dbConnectionLocal, company.did, body.userId, body.profile, body, sendDuration.toFixed(2), JSON.stringify(resultado), "desasignar", "rabbit", true);
 

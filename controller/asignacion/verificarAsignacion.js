@@ -3,7 +3,7 @@ import { idFromNoFlexShipment } from '../functions/idFromNoFlexShipment.js';
 import { executeQuery, getDbConfig, getProdDbConfig, updateRedis } from '../../db.js';
 import mysql2 from 'mysql2/promise.js';
 import { asignar } from './functions/asignar.js';
-import { logCyan, logRed } from '../../src/funciones/logsCustom.js';
+import { logCyan, logRed, logYellow } from '../../src/funciones/logsCustom.js';
 
 export async function verificacionDeAsignacion(startTime, company, userId, profile, body, driverId, deviceFrom) {
     const dbConfig = getProdDbConfig(company);
@@ -56,7 +56,6 @@ export async function verificacionDeAsignacion(startTime, company, userId, profi
             "SELECT estado, didCadete FROM envios_historial WHERE didEnvio = ? AND superado = 0 LIMIT 1",
             [shipmentId]
         );
-
         if (userId == driverId && !resultHistorial[0].didCadete) {
             return { estadoRespuesta: false, mensaje: "No tenes el paquete asignado." };
         }
@@ -81,15 +80,23 @@ export async function verificacionDeAsignacion(startTime, company, userId, profi
         } else {
             if (profile === 1 && estadoAsignacion === 1) {
                 logCyan("Es perfil 1 y estadoAsignacion 1");
+                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 1, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue asignado a otro cadete" };
             }
             if (profile === 3 && [2, 3].includes(estadoAsignacion)) {
                 logCyan("Es perfil 3 y estadoAsignacion 2");
+
+                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 2, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado por otro cadete" };
             }
             if (profile === 5 && [1, 3, 4, 5].includes(estadoAsignacion)) {
-                logCyan("Es perfil 5 y estadoAsignacion 1, 3, 4 o 5");
-                return { estadoRespuesta: false, mensaje: "Este paquete ya fue confirmado o asignado a otro cadete" };
+                logCyan("Es perfil 5 y estadoAsignacion 1, 3, 4");
+
+                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 3, deviceFrom]);
+                return { estadoRespuesta: false, mensaje: "Este paquete esta asignado a otro cadete" };
             }
         }
 
