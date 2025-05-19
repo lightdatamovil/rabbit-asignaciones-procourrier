@@ -80,21 +80,21 @@ export async function verificacionDeAsignacion(startTime, company, userId, profi
         } else {
             if (profile === 1 && estadoAsignacion === 1) {
                 logCyan("Es perfil 1 y estadoAsignacion 1");
-                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                const insertSql = `INSERT INTO asignaciones_fallidas ( operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
                 await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 1, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue asignado a otro cadete" };
             }
             if (profile === 3 && [2, 3].includes(estadoAsignacion)) {
                 logCyan("Es perfil 3 y estadoAsignacion 2");
 
-                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                const insertSql = `INSERT INTO asignaciones_fallidas ( operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
                 await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 2, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado por otro cadete" };
             }
             if (profile === 5 && [1, 3, 4, 5].includes(estadoAsignacion)) {
                 logCyan("Es perfil 5 y estadoAsignacion 1, 3, 4");
 
-                const insertSql = `INSERT INTO asignaciones_fallidas (did, operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
+                const insertSql = `INSERT INTO asignaciones_fallidas ( operador, didEnvio, quien, tipo_mensaje, desde) VALUES (?, ?, ?, ?, ?, ?)`;
                 await executeQuery(dbConnection, insertSql, ["", userId, shipmentId, driverId, 3, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete esta asignado a otro cadete" };
             }
