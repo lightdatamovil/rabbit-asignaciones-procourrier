@@ -91,8 +91,8 @@ export async function verificacionDeAsignacion(startTime, company, userId, profi
                 await executeQuery(dbConnection, insertSql, [userId, shipmentId, driverId, 2, deviceFrom]);
                 return { estadoRespuesta: false, mensaje: "Este paquete ya fue auto asignado por otro cadete" };
             }
-            if (profile === 5 && [1, 3, 4, 5].includes(estadoAsignacion)) {
-                logCyan("Es perfil 5 y estadoAsignacion 1, 3, 4");
+            if (profile === 5 && [1, 2, 3, 4, 5].includes(estadoAsignacion)) {
+                logCyan("Es perfil 5 y estadoAsignacion 1, 2, 3, 4, 5");
 
                 const insertSql = `INSERT INTO asignaciones_fallidas ( operador, didEnvio, quien, tipo_mensaje, desde) VALUES ( ?, ?, ?, ?, ?)`;
                 await executeQuery(dbConnection, insertSql, [userId, shipmentId, driverId, 3, deviceFrom]);
